@@ -57,7 +57,7 @@ app.get("/", (req, res) => {
  *   trap: string (honeypot)
  * }
  */
-app.post("/api/contact", async (req, res) => {
+app.post("/", async (req, res) => {
   try {
     const { nombre, correo, mensaje, trap } = req.body;
 
