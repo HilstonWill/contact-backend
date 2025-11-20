@@ -7,26 +7,10 @@ const nodemailer = require("nodemailer");
 const app = express();
 
 /**
- * Orígenes permitidos (tu frontend en Netlify y localhost para pruebas)
+ * CORS – modo simple: permite todas las origins
+ * (Si luego quieres restringir, lo ajustamos, pero así evitamos problemas)
  */
-const allowedOrigins = [
-  "https://hilston-will.netlify.app",
-  "http://localhost:3000",
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Permite también herramientas tipo Postman (sin origin)
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-  })
-);
-
+app.use(cors());
 app.use(express.json());
 
 /**
@@ -57,7 +41,7 @@ app.get("/", (req, res) => {
  *   trap: string (honeypot)
  * }
  */
-app.post("/", async (req, res) => {
+app.post("/api/contact", async (req, res) => {
   try {
     const { nombre, correo, mensaje, trap } = req.body;
 
