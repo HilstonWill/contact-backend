@@ -6,55 +6,64 @@ const nodemailer = require("nodemailer");
 
 const app = express();
 
-// =======================
-//  CORS
-// =======================
-//
-// FRONTEND_ORIGIN debe ser algo como:
-// - http://localhost:3000  (desarrollo)
-// - https://tu-dominio-frontend.com  (producción)
-const allowedOrigin = process.env.FRONTEND_ORIGIN || "*";
+/**
+ * Orígenes permitidos (tu frontend en Netlify y localhost para pruebas)
+ */
+const allowedOrigins = [
+  "https://hilston-will.netlify.app",
+  "http://localhost:3000",
+];
 
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: function (origin, callback) {
+      // Permite también herramientas tipo Postman (sin origin)
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
   })
 );
 
 app.use(express.json());
 
-// =======================
-//  TRANSPORTER NODEMAILER
-// =======================
-//
-// Variables que usaremos en Render:
-// MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS, MAIL_TO
-//
+/**
+ * Configuración de Nodemailer con variables de entorno
+ */
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT || 587),
-  secure: Number(process.env.MAIL_PORT) === 465, // true si usas 465
+  port: Number(process.env.MAIL_PORT) || 587,
+  secure: false, // true solo si usas 465
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
 });
 
-// Ruta de prueba rápida
+// Ruta simple para comprobar que el servicio vive
 app.get("/", (req, res) => {
-  res.json({ ok: true, message: "API de contacto funcionando 👌" });
+  res.json({ ok: true, message: "API de contacto funcionando" });
 });
 
-// =======================
-//  RUTA DE CONTACTO
-// =======================
+/**
+ * POST /api/contact
+ * Body esperado:
+ * {
+ *   nombre: string,
+ *   correo: string,
+ *   mensaje: string,
+ *   trap: string (honeypot)
+ * }
+ */
 app.post("/api/contact", async (req, res) => {
   try {
     const { nombre, correo, mensaje, trap } = req.body;
 
     // Honeypot anti-spam
     if (trap) {
-      return res.status(200).json({ ok: true, message: "OK (trap)" });
+      return res.status(200).json({ ok: true, message: "OK (bot ignorado)" });
     }
 
     if (!correo || !mensaje) {
@@ -69,7 +78,7 @@ app.post("/api/contact", async (req, res) => {
     const mailOptions = {
       from: `"Portafolio Hilston Will" <${process.env.MAIL_USER}>`,
       to: process.env.MAIL_TO,
-      replyTo: correo,
+      replyTo: correo, // al responder, te responde directo al correo del usuario
       subject,
       text: textBody,
     };
@@ -87,13 +96,9 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
-// =======================
-//  ARRANQUE
-// =======================
-//
-// Render define la variable PORT automáticamente.
-// En local usaremos 4000 si no existe.
-//
+/**
+ * Render asigna el puerto en process.env.PORT
+ */
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
